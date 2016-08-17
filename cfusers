@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+options = {}
+
+ARGV << '-h' if ARGV.empty?
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: cf_users [options]"
+  opts.on("-u val1,val2", Array, "Provide a comma separated list of users") { |val| options[:users] = val }
+  opts.on("-o val1,val2", Array, "Provide a comma separated list of org names") { |val| options[:orgs] = val }
+  opts.on("-x", "--userorgs", "Use this if you want to create one org per user") { |val| options[:userorgs] = val }
+  opts.on("-p", "--password=val", String, "Add a default password") { |val| options[:passwd] = val }
+  opts.on_tail("-h", "--help", "Show this message") do
+    puts opts
+    exit
+  end
+end.parse!
+
+if options[:userorgs] && options[:orgs]
+  puts "Please omit the -x flag or do not specify orgs."
+  exit
+end
+
+if options[:users]
+  if options[:passwd]
+    options[:users].each do |user|
+      run_cmd = "cf create-user #{user} #{options[:passwd]}"
+      puts "Running: #{run_cmd}"
+      system(run_cmd)
+    end
+  else
+    puts "Please provide a default password."
+    exit
+  end
+end
+
+if options[:orgs]
+  options[:orgs].each do |org|
+    cmd = "cf create-org #{org}"
+    puts "Running: #{cmd}"
+    system(cmd)
+  end
+end
+
+if options[:users] && options[:passwd] && options[:userorgs]
+  options[:users].each do |user|
+    org = user
+    run_cmd = ["cf create-user #{user} #{options[:passwd]}",
+    "cf create-org #{org}",
+    "cf set-org-role #{user} #{org} OrgManager",
+    "cf create-space #{user} -o #{org}",
+    "cf set-space-role #{user} #{org} #{user} SpaceManager",
+    "cf set-space-role #{user} #{org} #{user} SpaceDeveloper"]
+    cmd = run_cmd.join(" && ")
+    puts "Running: #{cmd}"
+    system(cmd)
+  end
+end
