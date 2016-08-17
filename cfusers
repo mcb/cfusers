@@ -46,8 +46,7 @@ end
 if options[:users] && options[:passwd] && options[:userorgs]
   options[:users].each do |user|
     org = user
-    run_cmd = ["cf create-user #{user} #{options[:passwd]}",
-    "cf create-org #{org}",
+    run_cmd = ["cf create-org #{org}",
     "cf set-org-role #{user} #{org} OrgManager",
     "cf create-space demo -o #{org}",
     "cf set-space-role #{user} #{org} demo SpaceManager",
